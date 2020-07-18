@@ -2,7 +2,12 @@ const { lemmatizer } = require("lemmatizer");
 const { WordTokenizer, stopwords } = require("natural")
 const nodejieba = require("nodejieba");
 
-
+/**
+ * Tokenize the given text.
+ * @param {string} text the text to be tokenized
+ * @param {Record<string, any>} option The split options
+ * @returns {{}}
+ */
 function splitText(text, option) {
   const chinesePattern = new RegExp("[\u4E00-\u9FA5]+") // 监测到任意中文则返回true
   const numberPattern = new RegExp("[0-9]+");

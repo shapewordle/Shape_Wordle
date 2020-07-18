@@ -9,6 +9,11 @@
 const cv = require('opencv4nodejs')
 const { Contour } = require('opencv4nodejs')
 
+/**
+ *
+ * @param {Image} image
+ * @param {Options} options
+ */
 function preProcessImg(image, options) {
   const cuttedImage = cutImage(image, options)
   const groupData = getGroup(cuttedImage, options)
