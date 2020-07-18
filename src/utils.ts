@@ -21,11 +21,7 @@ const measureTextHWCache = new LRU<string, TextHeightWidth>({
   maxAge: 1000 * 60 * 30,
 });
 
-export function measureTextSize(
-  text: string,
-  fontSize: number,
-  fontName: string
-): TextMetrics {
+export function measureTextSize(text: string, fontSize: number, fontName: string): TextMetrics {
   const cacheKey = `${text}_${fontSize}_${fontName}`;
   const cachedValue = measureTextSizeCache.get(cacheKey);
   if (cachedValue) {
@@ -49,10 +45,7 @@ export function calcScreenMinFontSize(): number {
     mWidth = undefined;
   while (size) {
     ctx.font = `${size}px sans-serif`;
-    if (
-      ctx.measureText("\uFF37").width === hanWidth &&
-      ctx.measureText("m").width === mWidth
-    ) {
+    if (ctx.measureText("\uFF37").width === hanWidth && ctx.measureText("m").width === mWidth) {
       return size + 1;
     }
     //\uFF37是大写的W
@@ -61,7 +54,7 @@ export function calcScreenMinFontSize(): number {
     size--;
   }
   return 0;
-};
+}
 
 /**
  * 保留 n 位小数
