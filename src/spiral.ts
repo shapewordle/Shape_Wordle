@@ -35,6 +35,9 @@ export type Point = [number, number];
 export type ExtremePoint = {
   value: number;
   pos: Point;
+  epWeight: number;
+  ratio: number;
+  epNumber: number;
 };
 
 export type Quadruple<T> = [T, T, T, T];
@@ -45,6 +48,10 @@ export type Region = {
   contour: Point[];
   extremePoints: ExtremePoint[];
   dist: number[][];
+  area: number;
+  value: number;
+  wordsNum: number;
+  wordsWeight: number;
 };
 
 export type Hessian = {
@@ -129,13 +136,7 @@ export default function layout(
     const startPoint = extremePoints[word.epID].pos;
     // CONFUSING: Why repeat for 5 times?
     for (let i = 0; i < 5; i++) {
-      const newPosition = iterate(
-        dist,
-        startPoint,
-        word.position,
-        canvasWidth,
-        canvasHeight
-      );
+      const newPosition = iterate(dist, startPoint, word.position, canvasWidth, canvasHeight);
       if (newPosition) {
         word.position = [...newPosition];
       } else {
@@ -171,10 +172,7 @@ function getWordPoint(word: Word): Quadruple<Point>[] {
     word.box.forEach((box) => {
       const wwidth = box[2] * 2;
       const wheight = box[3] * 2;
-      const posr: Point = [
-        box[0] + word.position[0],
-        box[1] + word.position[1],
-      ];
+      const posr: Point = [box[0] + word.position[0], box[1] + word.position[1]];
       ps.push([
         [posr[0], posr[1]],
         [posr[0] + wwidth, posr[1]],
@@ -197,12 +195,8 @@ function getWordPoint(word: Word): Quadruple<Point>[] {
         quadrupleMap(
           q,
           (p): Point => [
-            (p[0] - pos[0]) * Math.cos(angle) -
-              (p[1] - pos[1]) * Math.sin(angle) +
-              pos[0],
-            (p[0] - pos[0]) * Math.sin(angle) +
-              (p[1] - pos[1]) * Math.cos(angle) +
-              pos[1],
+            (p[0] - pos[0]) * Math.cos(angle) - (p[1] - pos[1]) * Math.sin(angle) + pos[0],
+            (p[0] - pos[0]) * Math.sin(angle) + (p[1] - pos[1]) * Math.cos(angle) + pos[1],
           ]
         )
       );
@@ -226,10 +220,7 @@ function isOverlap(word1: Word, word2: Word): boolean {
  * @param param0 the word
  * @param ratio TODO: explain this
  */
-function getCornerPoints(
-  { position: [x, y], angle, width, height }: Word,
-  ratio: number
-): Quadruple<Point> {
+function getCornerPoints({ position: [x, y], angle, width, height }: Word, ratio: number): Quadruple<Point> {
   const p: Quadruple<Point> = [
     [x - width * ratio, y - height * ratio], // left top
     [x + width * ratio, y - height * ratio], // right top
@@ -247,12 +238,7 @@ function getCornerPoints(
       );
 }
 
-function checkSegmentIntersect(
-  aa: Point,
-  bb: Point,
-  cc: Point,
-  dd: Point
-): boolean {
+function checkSegmentIntersect(aa: Point, bb: Point, cc: Point, dd: Point): boolean {
   return !(
     Math.max(aa[0], bb[0]) < Math.min(cc[0], dd[0]) ||
     Math.max(aa[1], bb[1]) < Math.min(cc[1], dd[1]) ||
@@ -284,18 +270,10 @@ function isIntersected(contour: Point[], p1: Point, p2: Point): boolean {
  * @param group the group
  * @param regionID the region ID
  */
-function isInShapePoint(
-  point: Point,
-  width: number,
-  height: number,
-  group: number[][],
-  regionID: number
-): boolean {
+function isInShapePoint(point: Point, width: number, height: number, group: number[][], regionID: number): boolean {
   const x = Math.floor(point[0]);
   const y = Math.floor(point[1]);
-  return (
-    0 <= x && x < width && 0 <= y && y < height && group[y][x] - 2 === regionID
-  );
+  return 0 <= x && x < width && 0 <= y && y < height && group[y][x] - 2 === regionID;
 }
 
 /**
@@ -330,14 +308,15 @@ function isInShapeWord(
   );
 }
 
-function iterate(
-  dist: number[][],
-  startPoint: Point,
-  pos: Point,
-  canvasWidth: number,
-  canvasHeight: number
-): Point | false {
-  // 根据螺旋线迭代取得一个位置
+/**
+ * 根据螺旋线迭代取得一个位置
+ * @param dist the distance field
+ * @param startPoint the start point
+ * @param pos the position
+ * @param width the width
+ * @param height the height
+ */
+function iterate(dist: number[][], startPoint: Point, pos: Point, width: number, height: number): Point | false {
   const point = { x: pos[0], y: pos[1] };
   // 法线方向
   const normal = computeSDF(dist, point.x, point.y);
@@ -352,16 +331,13 @@ function iterate(
   // 黑塞矩阵是为了计算距离场中某点的曲率
   const hessian = computeHessian(dist, point.x, point.y);
   const prepoint: Point = [point.x - startPoint[0], point.y - startPoint[1]];
-  let p = [
-    tangent[0] * hessian.xx + tangent[1] * hessian.xy,
-    tangent[0] * hessian.xy + tangent[1] * hessian.yy,
-  ];
+  const p = [tangent[0] * hessian.xx + tangent[1] * hessian.xy, tangent[0] * hessian.xy + tangent[1] * hessian.yy];
   let tem = tangent[0] * p[0] + tangent[1] * p[1];
   const curvature = Math.max(tem / (norLen * norLen * norLen), 0.001);
   const radius = Math.abs(1 / curvature);
   tem = (2 * Math.PI * radius) / N;
   let dr: Point = [(tangent[0] * tem) / norLen, (tangent[1] * tem) / norLen];
-  let normDR = norm(dr);
+  const normDR = norm(dr);
   if (normDR > maxTS) {
     dr = [(maxTS / normDR) * dr[0], (maxTS / normDR) * dr[1]];
   }
@@ -371,31 +347,28 @@ function iterate(
   point.x += dr[0];
   point.y += dr[1];
   const p2: Point = [point.x - startPoint[0], point.y - startPoint[1]];
-  let dtheta = Math.acos(
-    (prepoint[0] * p2[0] + prepoint[1] * p2[1]) / norm(prepoint) / norm(p2)
-  );
-  if (prepoint[0] * p2[1] - prepoint[1] * p2[0] < 0)
+  let dtheta = Math.acos((prepoint[0] * p2[0] + prepoint[1] * p2[1]) / norm(prepoint) / norm(p2));
+  if (prepoint[0] * p2[1] - prepoint[1] * p2[0] < 0) {
     //判断是正转反转
     dtheta = -dtheta;
+  }
   point.x += (Math.abs(m * dtheta) * normal[0]) / norLen;
   point.y += (Math.abs(m * dtheta) * normal[1]) / norLen;
 
   // 检测是否出界
-  if (point.x && point.y) {
-    if (dist[Math.floor(point.x)][Math.floor(point.y)] <= 0) {
-      return false;
-    }
-    if (point.x > canvasWidth - 2 || point.x < 2) {
-      return false;
-    }
-    if (point.y > canvasHeight - 2 || point.y < 2) {
-      return false;
-    }
-  } else {
+  if (
+    point.x &&
+    point.y &&
+    (dist[Math.floor(point.x)][Math.floor(point.y)] <= 0 ||
+      point.x > width - 2 ||
+      point.x < 2 ||
+      point.y > height - 2 ||
+      point.y < 2)
+  ) {
     return false;
+  } else {
+    return [point.x, point.y];
   }
-
-  return [point.x, point.y];
 }
 
 /**
@@ -456,11 +429,7 @@ function computeHessian(data: number[][], px: number, py: number): Hessian {
     for (let j = 0; j < kernelSize; j++) {
       const offsetX = i - offset,
         offsetY = j - offset;
-      const localGrad = computeSDF(
-        data,
-        wordPosition.x + offsetX,
-        wordPosition.y + offsetY
-      );
+      const localGrad = computeSDF(data, wordPosition.x + offsetX, wordPosition.y + offsetY);
       localHessian.xx += localGrad[0] * gradX[i][j];
       localHessian.xy += localGrad[0] * gradY[i][j];
       localHessian.yy += localGrad[1] * gradY[i][j];
