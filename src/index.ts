@@ -1,7 +1,7 @@
 import { preProcessImg } from "../nodejs_version/lib/imageProcess";
 import { preprocessDistanceField } from "../nodejs_version/lib/preprocessDistanceField";
 import { preprocessWords } from "../nodejs_version/lib/preprocessWords";
-import { allocateWords } from "../nodejs_version/lib/allocateWords";
+import allocateWords from "./allocateWords";
 import generateWordle from "./wordle";
 import { draw, drawKeywords, drawFillingWords } from "../nodejs_version/lib/draw";
 // TODO：此处有一个bug，当‘import { splitText } from './textProcess.js';’放在文件首时
