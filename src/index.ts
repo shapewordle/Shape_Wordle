@@ -3,14 +3,19 @@ import preprocessDistanceField from "./preprocess-distance-field";
 import preprocessWords from "./preprocess-words";
 import allocateWords from "./allocateWords";
 import generateWordle from "./wordle";
-import { draw, drawKeywords, drawFillingWords } from "../nodejs_version/lib/draw";
+import { drawKeywords, drawFillingWords } from "./fill";
 import { Options, mergeDefaultOptions } from "./options";
 import cv from "opencv4nodejs";
 import { Word, Region } from "./spiral";
+import { WordPosition } from "./render";
 
 export type Token = { name: string; weight: number };
 
-export default function shapeWordle(tokens: Token[], image: cv.Mat, partialOptions: Partial<Options>): Image {
+export default function shapeWordle(
+  tokens: Token[],
+  image: cv.Mat,
+  partialOptions: Partial<Options>
+): [WordPosition[], WordPosition[]] {
   // 计算时，会修改options中的数据，所以每次generate重新取一下option
   const options = mergeDefaultOptions(partialOptions);
   const { dist, contour, group, area } = preprocessImage(image, options);
@@ -22,5 +27,5 @@ export default function shapeWordle(tokens: Token[], image: cv.Mat, partialOptio
   // 获取单词位置
   const fillingWordsWithPos = drawFillingWords(keywords, fillingWords, group, options);
   const keywordsWithPos = drawKeywords(keywords, options);
-  return draw(keywordsWithPos, fillingWordsWithPos, options);
+  return [keywordsWithPos, fillingWordsWithPos];
 }
