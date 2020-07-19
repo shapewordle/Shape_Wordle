@@ -1,4 +1,5 @@
 import { Options } from "./options";
+import { Point, isIntersectedPolygons, isIntersected, norm } from "./geometry";
 
 const eps = 0.0000001;
 
@@ -30,14 +31,13 @@ export type Word = {
   regionID: number;
 };
 
-export type Point = [number, number];
-
 export type ExtremePoint = {
   value: number;
   pos: Point;
   epWeight: number;
   ratio: number;
   epNumber: number;
+  regionID: number;
 };
 
 export type Quadruple<T> = [T, T, T, T];
@@ -73,39 +73,6 @@ export type LayoutResult = {
 
 function quadrupleMap<S, T>(xs: Quadruple<S>, f: (x: S) => T): Quadruple<T> {
   return [f(xs[0]), f(xs[1]), f(xs[2]), f(xs[3])];
-}
-
-function norm(vec: [number, number]): number {
-  return Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
-}
-
-function cross(a: Point, b: Point, c: Point): number {
-  return (a[0] - c[0]) * (b[1] - c[1]) - (b[0] - c[0]) * (a[1] - c[1]);
-}
-
-function isIntersectedPolygons(a: Point[], b: Point[]): boolean {
-  const polygons = [a, b];
-  for (let i = 0; i < polygons.length; i++) {
-    const polygon = polygons[i];
-    for (let j = 0; j < polygons.length; j++) {
-      const p1 = polygon[j];
-      const p2 = polygon[(j + 1) % polygon.length];
-      const normal = { x: p2[1] - p1[1], y: p1[0] - p2[0] };
-
-      const projectedA = a.map((p) => normal.x * p[0] + normal.y * p[1]);
-      const minA = Math.min(...projectedA);
-      const maxA = Math.max(...projectedA);
-
-      const projectedB = b.map((p) => normal.x * p[0] + normal.y * p[1]);
-      const minB = Math.min(...projectedB);
-      const maxB = Math.max(...projectedB);
-
-      if (maxA < minB || maxB < minA) {
-        return false;
-      }
-    }
-  }
-  return true;
 }
 
 const ITERATION_LIMIT = 12000;
@@ -236,30 +203,6 @@ function getCornerPoints({ position: [x, y], angle, width, height }: Word, ratio
           (p[0] - x) * Math.sin(angle) + (p[1] - y) * Math.cos(angle) + y,
         ]
       );
-}
-
-function checkSegmentIntersect(aa: Point, bb: Point, cc: Point, dd: Point): boolean {
-  return !(
-    Math.max(aa[0], bb[0]) < Math.min(cc[0], dd[0]) ||
-    Math.max(aa[1], bb[1]) < Math.min(cc[1], dd[1]) ||
-    Math.max(cc[0], dd[0]) < Math.min(aa[0], bb[0]) ||
-    Math.max(cc[1], dd[1]) < Math.min(aa[1], bb[1]) ||
-    cross(cc, bb, aa) * cross(bb, dd, aa) < 0 ||
-    cross(aa, dd, cc) * cross(dd, bb, cc) < 0
-  );
-}
-
-function isIntersected(contour: Point[], p1: Point, p2: Point): boolean {
-  //检测线段是否和边界相交
-  //检测两个线段是否相交的方法
-
-  // ok means early break
-  for (let i = 0; i < contour.length - 1; i++) {
-    if (checkSegmentIntersect(p1, p2, contour[i], contour[i + 1])) {
-      return true;
-    }
-  }
-  return checkSegmentIntersect(p1, p2, contour[contour.length - 1], contour[0]);
 }
 
 /**

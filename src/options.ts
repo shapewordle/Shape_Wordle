@@ -1,7 +1,7 @@
 /**
  * 角度模式
  */
-enum Orientation {
+export enum Orientation {
   /**
    * 0-全横
    */

@@ -1,16 +1,8 @@
-import { measureTextSize, measureTextHW } from "./utils";
-import wordleAlgorithm, { Word, Region, Point, LayoutResult, ExtremePoint } from "./spiral";
+import { measureTextSize, measureTextHW } from "./text-measurement";
+import { Point } from "./geometry";
+import wordleAlgorithm, { Word, Region, LayoutResult, ExtremePoint } from "./spiral";
 import { Options } from "./options";
-import _ from "lodash";
-
-function makeRandomArray(length: number, remain: number): number[] {
-  const base = _.times<number>(length - remain, _.identity);
-  for (let i = length - remain; i < length; i++) {
-    const index = Math.floor(Math.random() * base.length);
-    base.splice(index, 0, i);
-  }
-  return base;
-}
+import { makeRandomArray } from "./utils";
 
 /**
  * Generate a wordle from scratch.

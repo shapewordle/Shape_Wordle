@@ -1,4 +1,5 @@
-import { measureTextSize, round } from "./utils";
+import { measureTextSize } from "./text-measurement";
+import { round } from "./utils";
 import { Word, Region } from "./spiral";
 import { Options } from "./options";
 

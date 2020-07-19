@@ -1,23 +1,24 @@
-import { preProcessImg } from "../nodejs_version/lib/imageProcess";
-import { preprocessDistanceField } from "../nodejs_version/lib/preprocessDistanceField";
-import { preprocessWords } from "../nodejs_version/lib/preprocessWords";
+import preprocessImage from "./image-process";
+import preprocessDistanceField from "./preprocess-distance-field";
+import preprocessWords from "./preprocess-words";
 import allocateWords from "./allocateWords";
 import generateWordle from "./wordle";
 import { draw, drawKeywords, drawFillingWords } from "../nodejs_version/lib/draw";
-// TODO：此处有一个bug，当‘import { splitText } from './textProcess.js';’放在文件首时
-// 会导致preProcessImg中计算group的部分出现问题
-import { splitText } from "../nodejs_version/lib/textProcess.js";
 import { Options, mergeDefaultOptions } from "./options";
-import { Image } from "canvas";
+import cv from "opencv4nodejs";
+import { Word, Region } from "./spiral";
 
-export default function shapeWordle(text: string, image: Image, partialOptions: Partial<Options>): Image {
+export type Token = { name: string; weight: number };
+
+export default function shapeWordle(tokens: Token[], image: cv.Mat, partialOptions: Partial<Options>): Image {
   // 计算时，会修改options中的数据，所以每次generate重新取一下option
   const options = mergeDefaultOptions(partialOptions);
-  const { dist, contour, group, area } = preProcessImg(image, options);
+  const { dist, contour, group, area } = preprocessImage(image, options);
   const regions = preprocessDistanceField(dist, contour, options);
-  const { keywords, fillingWords } = preprocessWords(splitText(text, options), options);
-  allocateWords(keywords, regions, area, options);
-  generateWordle(keywords, regions, group, options);
+  const [keywords, fillingWords] = preprocessWords(tokens, options);
+  // TODO: remove type coercings here.
+  allocateWords((keywords as unknown) as Word[], (regions as unknown) as Region[], area, options);
+  generateWordle((keywords as unknown) as Word[], (regions as unknown) as Region[], group, options);
   // 获取单词位置
   const fillingWordsWithPos = drawFillingWords(keywords, fillingWords, group, options);
   const keywordsWithPos = drawKeywords(keywords, options);
